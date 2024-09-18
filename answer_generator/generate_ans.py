@@ -1,0 +1,126 @@
+from extraction_doc import extract_text_from_file, clean_text 
+import time
+from transformers import pipeline
+import os
+
+
+def run_model_and_measure_time(model_name, context, question):
+    """
+    Runs a question-answering model on a given context and question, and measures the time taken to get the answer.
+
+    Args:
+        model_name (str): The name or path of the pre-trained model to be used for question-answering.
+        context (str): The text from which the model should extract the answer.
+        question (str): The question to be answered based on the context.
+
+    Returns:
+        tuple: 
+            - str: The extracted answer from the model.
+            - float: The time taken to process the question and return the answer (in seconds).
+    
+    Example:
+        answer, elapsed_time = run_model_and_measure_time('deepset/xlm-roberta-large-squad2', context, question)
+        print(f"Answer: {answer}, Time: {elapsed_time:.2f} seconds")
+    """
+
+    qa_pipeline = pipeline('question-answering', model=model_name)
+    
+    start_time = time.time()
+    result = qa_pipeline(question=question, context=context)
+    end_time = time.time()
+
+    elapsed_time = end_time - start_time
+ 
+    return result['answer'], elapsed_time
+
+
+def upload_file():
+    """
+    Handles file upload and returns the file path of the uploaded file.
+    
+    Returns:
+        str: The path to the uploaded file.
+    """
+    
+    file_path = input("Enter the path to the file: ")
+    return file_path
+
+def process_file(file_path):
+    """
+    Extracts text from the file, cleans the text, and returns the processed content.
+    
+    Args:
+        file_path (str): The path to the file.
+    
+    Returns:
+        str: The cleaned and processed text content.
+    """
+    context = extract_text_from_file(file_path)
+    context = clean_text(context)
+    return context
+
+
+
+def run_models_on_question(models, context, question):
+    """
+    Runs each model on the given context and question, records the answer and execution time.
+    
+    Args:
+        models (list): List of model names to run.
+        context (str): The text context to answer from.
+        question (str): The question to answer.
+    
+    Returns:
+        dict: A dictionary with model names as keys and execution times as values.
+        dict: A dictionary with model names as keys and answers as values.
+    """
+    times = {}
+    answers = {}
+
+    for model in models:
+        answer, elapsed_time = run_model_and_measure_time(model, context, question)
+        times[model] = elapsed_time
+        answers[model] = answer
+
+    return times, answers
+
+
+def display_model_answers(models, answers, question):
+    """
+    Prints the question and the answers given by each model.
+    
+    Args:
+        models (list): List of model names.
+        answers (dict): Dictionary of model answers.
+        question (str): The original question asked.
+    """
+    print(f"\nThe Question: {question}")
+    for i in range(len(models)-1, -1, -1):
+        model = models[i]
+        answer = answers[model]
+        print(f"\nModel: {model}\nAnswer: {answer}")
+
+def read_file(file_path):
+    """
+    Reads the content of a file and returns it as a string.
+    
+    Args:
+        file_path (str): The path to the file.
+    
+    Returns:
+        str: The content of the file.
+    """
+    with open(file_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+    return content
+
+
+def contaxt_to_generate_directory_lisener(question):
+    dir_name = r'data\context_to_generate_ans' # directory to listen for new files
+    for file in os.listdir(dir_name):
+        context = read_file(os.path.join(dir_name, file))
+        models = ['timpal0l/mdeberta-v3-base-squad2']
+        times, answers = run_models_on_question(models, context, question)
+        display_model_answers(models, answers, question)
+
+
