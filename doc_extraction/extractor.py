@@ -9,7 +9,7 @@ from io import BytesIO
 from langdetect import detect
 import chardet
 import ftfy
-import unidecode
+from unidecode import unidecode
 
 def read_file_with_encoding(file_path):
     """
@@ -134,7 +134,7 @@ def extract_text_from_file(file_path):
 
     if mime_type == 'text/plain':
         text, encoding_used = read_file_with_encoding(file_path)
-        print(f"Used encoding: {encoding_used}")
+ 
 
     elif mime_type == 'application/pdf':
         with pdfplumber.open(file_path) as pdf:
@@ -181,12 +181,19 @@ def extract_text_from_file(file_path):
 
     return text, detected_language
 
-if __name__ == "__main__":
-    file_path = r"C:\Users\Dor Shukrun\Desktop\טיפים לפני ראיון.txt"
-    file_path2 = r"C:\Users\Dor Shukrun\Downloads\הרצאות\12_bitcoin.pdf"
-    context, language = extract_text_from_file(file_path2)
+def save_text_to_file(file_path, fixed_dest_folder):
+    """
+    Saves the extracted text to a file.
+    
+    Args:
+        text (str): The text to be saved.
+        file_path (str): The path to save the text to.
+    """
+    context, language = extract_text_from_file(file_path)
+    file_name = file_path.split("\\")[-1].split(".")[0]
     fixed_text = fix_unicode_text_if_needed(context, language)
-    write_path = r"doc_extraction\fixed_text.txt"
+    write_path = f"{fixed_dest_folder}/{file_name}_fixed.txt"
     with open(write_path, "w", encoding="utf-8") as file:
         file.write(fixed_text)
-    print(fixed_text)
+
+
