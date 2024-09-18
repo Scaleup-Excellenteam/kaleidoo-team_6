@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy</title>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Include JavaScript file -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+    <div class="title-container">
+        <h1 class="title">StudyBuddy</h1>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="container" id="upload-section">
+        <h2>Upload Files</h2>
+        <form id="uploadForm" action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data" onsubmit="return validateUpload()">
+            <label for="files">Upload Files (Video, Document, Audio):</label>
+            <input type="file" name="files" id="files" multiple><br><br>
+
+            <input type="submit" value="Upload">
+        </form>
+        <!-- Processing message -->
+        <div id="processing-message" style="display:none; color: green; font-weight: bold;">
+            Processing files, please wait...
+        </div>
+    </div>
+
+    <!-- Q&A Section -->
+    <div class="chat-container" id="qa-section">
+        <h2>Chat with StudyBuddy</h2>
+        <div class="chat-box" id="chat-box">
+            {% for question, answer in chat %}
+                <div class="chat-message user-message">
+                    <strong>You:</strong> {{ question }}
+                    <button class="copy-btn" onclick="copyToClipboard('{{ question }}')">Copy</button>
+                </div>
+                <div class="chat-message bot-message">
+                    <strong>StudyBuddy:</strong> {{ answer }}
+                    <button class="copy-btn" onclick="copyToClipboard('{{ answer }}')">Copy</button>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form action="{{ url_for('submit_question') }}" method="POST">
+            <input type="text" name="question" id="question" placeholder="Type your question here..." autocomplete="off"><br><br>
+
+            <input type="submit" value="Ask">
+        </form>
+    </div>
+</body>
+</html>
