@@ -1,33 +1,41 @@
-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType
+from pymilvus import connections, Collection, CollectionSchema, FieldSchema, DataType
+from sentence_transformers import SentenceTransformer
 import numpy as np
 
-# Connect to Milvus
-connections.connect(alias="default", host='localhost', port='19530')
+# Establish connection with Milvus
+connections.connect()
 
-# Define the schema for Milvus Collection
-fields = [
-    FieldSchema(name="question_vector", dtype=DataType.FLOAT_VECTOR, dim=128, is_primary=False),
-    FieldSchema(name="question", dtype=DataType.VARCHAR, max_length=512),
-    FieldSchema(name="answer", dtype=DataType.VARCHAR, max_length=512)
-]
+# Load a pre-trained model for embedding
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
-schema = CollectionSchema(fields, description="Chat Q&A Collection")
-collection = Collection("qa_collection", schema)
+# Define your schema
+def create_collection():
+    question_field = FieldSchema(name="question", dtype=DataType.FLOAT_VECTOR, dim=384)  # 384 is the dimension of the embedding model output
+    answer_field = FieldSchema(name="answer", dtype=DataType.VARCHAR, max_length=1000)
 
-# Ensure collection exists
-if not collection.has_collection("qa_collection"):
-    collection.create_index(field_name="question_vector", index_params={"index_type": "IVF_FLAT", "params": {"nlist": 128}})
-    collection.load()
+    schema = CollectionSchema(fields=[question_field, answer_field], description="QA collection")
+    collection = Collection(name="qa_collection", schema=schema)
+    return collection
 
+# Embed a question into a vector
+def embed_text(text):
+    return model.encode(text).tolist()
+
+# Insert question-answer pairs into Milvus
 def insert_question_answer(question, answer):
-    # Convert the question into a random vector (you can replace this with actual embedding logic)
-    question_vector = np.random.rand(128).tolist()
+    collection = Collection("qa_collection")
 
-    # Insert the question, vector, and answer into Milvus
-    collection.insert([question_vector, question, answer])
+    # Embed the question into a vector
+    question_vector = embed_text(question)
 
-def search_question(question_vector, top_k=5):
-    # Perform search with the provided vector and return the top_k results
-    search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
-    results = collection.search([question_vector], anns_field="question_vector", param=search_params, limit=top_k)
-    return results
+    # Prepare data for insertion
+    data = [
+        [question_vector],  # Question vector
+        [answer]            # Answer text
+    ]
+
+    # Insert data into the collection
+    collection.insert(data)
+
+# Create the collection (run once, or you can check if it already exists)
+collection = create_collection()

@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 import time
-from milvus_db import insert_question_answer  # Import the insert function from milvus_db
+# from milvus_db import insert_question_answer  # Import the insert function from milvus_db
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads/'
@@ -29,23 +29,39 @@ def upload_file():
     return redirect(url_for('index'))
 
 def process_file(file_path):
-    """Simulate file processing (replace with actual processing logic)"""
-    print(f"Processing file: {file_path}")
-    time.sleep(3)  # Simulate time taken to process the file
-    print(f"Finished processing: {file_path}")
+    """Choose the correct processing function based on file extension"""
+    file_ext = os.path.splitext(file_path)[1].lower()
+
+    # if file_ext in ['.mp4', '.avi', '.mov']:  # Example video file extensions
+    #     process_video(file_path)
+    # elif file_ext in ['.mp3', '.wav']:  # Example audio file extensions
+    #     process_audio(file_path)
+    # elif file_ext in ['.pdf', '.docx', '.txt']:  # Example document file extensions
+    #     process_document(file_path)
+    # else:
+    #     print(f"Unsupported file type: {file_path}")
+
 
 @app.route('/submit_question', methods=['POST'])
 def submit_question():
-    # Get the question from the form
-    question = request.form.get('question')
-    if question:
-        # Here you can process the question and generate an answer
-        answer = f"{question}"  # Placeholder response
-        # Add the question and answer to chat history
-        chat_history.append((question, answer))
-        insert_question_answer(question, answer)
+    # Expect JSON data
+    data = request.get_json()
+    question = data.get('question')
 
-    return redirect(url_for('index'))
+    if question:
+        # Process the question and generate an answer (this is where you'd implement your logic)
+        answer = f"Answer for: {question}"  # Placeholder response for the question
+
+        # Add the question and answer to the chat history
+        chat_history.append((question, answer))
+
+        # Optionally, store the question and answer in the database
+        # insert_question_answer(question, answer)
+
+        # Send the question and answer back as JSON response
+        return jsonify({"question": question, "answer": answer})
+
+    return jsonify({"error": "No question provided"}), 400
 
 
 if __name__ == '__main__':

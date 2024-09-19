@@ -45,11 +45,16 @@
             {% endfor %}
         </div>
 
-        <form action="{{ url_for('submit_question') }}" method="POST">
+        <form id="question-form" action="{{ url_for('submit_question') }}" method="POST">
             <input type="text" name="question" id="question" placeholder="Type your question here..." autocomplete="off"><br><br>
-
             <input type="submit" value="Ask">
         </form>
+
+
+        <!-- Placeholder for the answer -->
+        <div id="answer-section">
+            <p id="answer"></p>
+        </div>
     </div>
 </body>
 </html>
