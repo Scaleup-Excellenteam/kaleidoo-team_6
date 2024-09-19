@@ -2,8 +2,8 @@ from pymilvus import FieldSchema, CollectionSchema, DataType, Collection, connec
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import os
-import time
 import shutil
+from tqdm import tqdm  
 
 
 def connect_to_milvus(host="localhost", port="19530"):
@@ -30,11 +30,28 @@ def text_to_vector(model, text):
     return model.encode(text)
 
 
+
+def split_text_into_chunks(text, max_length=250):
+    return [text[i:i+max_length] for i in range(0, len(text), max_length)]
+
 def insert_data(collection, texts, model):
-    vectors = [text_to_vector(model, text) for text in texts] 
-    ids = list(range(len(texts)))  
+    vectors = []
+    ids = []
+    current_id = 0
+    
+    for text in tqdm(texts, desc="Converting texts to vectors"):
+        chunks = split_text_into_chunks(text, max_length=250)
+        
+        for chunk in chunks:
+            vector = text_to_vector(model, chunk)  
+            vectors.append(vector)
+            ids.append(current_id)
+            current_id += 1
+        
     collection.insert([ids, vectors])
     print("Data inserted")
+
+
 
 
 def build_index(collection):
@@ -51,6 +68,11 @@ def load_collection(collection):
     collection.load()
     print("Collection loaded into memory")
 
+def normalize_distance(distance, max_distance):
+    if max_distance == 0:
+        return 0
+    return distance / max_distance
+
 def search_by_question(collection, model, question, texts):
     query_vector = text_to_vector(model, question)  
     search_params = {
@@ -61,29 +83,39 @@ def search_by_question(collection, model, question, texts):
         data=[query_vector],
         anns_field="vector",
         param=search_params,
-        limit=5 
+        limit=15
     )
+    
+    max_distance = max(match.distance for result in results for match in result)  
     
     print("Search results:")
     for result in results:
         for match in result:
             original_text = texts[match.id] 
-            print(f"ID: {match.id}, Distance: {match.distance}, Text: {original_text}")
+            normalized_distance = normalize_distance(match.distance, max_distance)
+            print(f"ID: {match.id}, Distance: {normalized_distance}, Text: {original_text}")
     
     return results
 
+def delete_collection(collection_name):
+    if utility.has_collection(collection_name):
+        collection = Collection(collection_name)
+        collection.release()  
+        print(f"Deleting collection {collection_name}")
+        collection.drop()  
+        print(f"Collection {collection_name} deleted")
+    else:
+        print(f"Collection {collection_name} does not exist")
+
 
 def get_or_create_collection():
-    if utility.has_collection("text_collection"):
-        collection = Collection("text_collection")
-        print("Collection loaded from Milvus")
-    else:
-        collection = create_collection()
+    delete_collection("text_collection") 
+    collection = create_collection() 
     return collection
+
 
 def directory_not_empty(directory):
     return bool(os.listdir(directory))
-
 
 
 def get_context(question):
@@ -119,6 +151,7 @@ def get_context(question):
                 f.write(f"ID: {match.id}, Distance: {match.distance}, Text: {text[match.id]}\n")
     
     print(f"Context saved to {output_file_path}")
+    
 
     
     
@@ -156,7 +189,4 @@ def get_context(question):
         
 #         question = input("Enter your question: ")
 #         search_by_question(collection, model, question, text)  
-
-
-
 

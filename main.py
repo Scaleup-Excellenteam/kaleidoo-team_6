@@ -9,6 +9,7 @@ from milvus.script.indexing import get_context
 from answer_generator.generate_ans import contaxt_to_generate_directory_lisener
 
 
+
 def check_and_process_files(src_folder, dest_folder, process_file, fixed_dest_folder):
     while True:
         # List files in the source folder
@@ -26,7 +27,7 @@ def check_and_process_files(src_folder, dest_folder, process_file, fixed_dest_fo
                     os.makedirs(fixed_dest_folder)
                 
                 # Process the file using the provided function
-                process_file(file_path, fixed_dest_folder)
+                process_file(file_path, fixed_dest_folder) #TODO here we can navigate the file into the right place
                 
                 # Move the file to the destination folder if processing is successful
                 shutil.move(file_path, dest_folder)
