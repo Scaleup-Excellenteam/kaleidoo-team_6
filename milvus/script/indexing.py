@@ -27,7 +27,7 @@ def load_data_from_file(file_path):
 
 
 def text_to_vector(model, text):
-    return model.encode(text)
+    return model.encode(text, clean_up_tokenization_spaces=True)
 
 
 
@@ -85,16 +85,6 @@ def search_by_question(collection, model, question, texts):
         param=search_params,
         limit=15
     )
-    
-    max_distance = max(match.distance for result in results for match in result)  
-    
-    print("Search results:")
-    for result in results:
-        for match in result:
-            original_text = texts[match.id] 
-            normalized_distance = normalize_distance(match.distance, max_distance)
-            print(f"ID: {match.id}, Distance: {normalized_distance}, Text: {original_text}")
-    
     return results
 
 def delete_collection(collection_name):
@@ -118,6 +108,10 @@ def directory_not_empty(directory):
     return bool(os.listdir(directory))
 
 
+
+    
+
+
 def get_context(question):
     connect_to_milvus()
     collection = get_or_create_collection()
@@ -125,22 +119,27 @@ def get_context(question):
     file_dir = r'data\extracted_text_from_media'
     proc_dir = r"data\processed_files"
     
+
     for file in os.listdir(file_dir):
-        file_path = os.path.join(file_dir, file) 
+        file_path = os.path.join(file_dir, file)
         text = load_data_from_file(file_path)
         shutil.move(file_path, proc_dir)
+        
         print("inserting data...\n")
         insert_data(collection, text, model)
+        
         print("building index...\n")
         build_index(collection)
+        
         print("loading collection...\n")
         load_collection(collection)
-     
-    print("searching by question...\n")   
+    
+
+    print("searching by question...\n")
     context = search_by_question(collection, model, question, text)
     
 
-    print("saving context to file...\n")  
+    print("saving context to file...\n")
     saved_context_dir = r"data\context_to_generate_ans"
     output_file_name = "context.txt"
     output_file_path = os.path.join(saved_context_dir, output_file_name)
@@ -148,12 +147,15 @@ def get_context(question):
     with open(output_file_path, 'w', encoding='utf-8') as f:
         for result in context:
             for match in result:
-                f.write(f"ID: {match.id}, Distance: {match.distance}, Text: {text[match.id]}\n")
+
+                if match.id < len(text):
+                    if match.distance < 0.5 or len(text[match.id]) < 10:
+                        continue
+                    f.write(f"ID: {match.id}, Distance: {match.distance}, Text: {text[match.id]}\n")
+                else:
+                    print(f"Warning: match.id {match.id} is out of range for the text list.")
     
     print(f"Context saved to {output_file_path}")
-    
-
-    
     
     
         
@@ -161,32 +163,4 @@ def get_context(question):
     
    
 
-
-# if __name__ == "__main__":
-#     connect_to_milvus()
-#     collection = get_or_create_collection()
-#     model = SentenceTransformer('paraphrase-mpnet-base-v2')
-#     file_dir = r"doc_extraction\data\fixed_files"
-#     proc_dir = r"doc_extraction\data\processed_files"
- 
-    
-#     while True:
-#         if directory_not_empty(file_dir):
-#             for file in os.listdir(file_dir):
-#                 file_path = os.path.join(file_dir, file) 
-#                 text = load_data_from_file(file_path)
-#                 shutil.move(file_path, proc_dir)
-#                 insert_data(collection, text, model)
-#                 build_index(collection)
-#                 load_collection(collection)
-#         else:
-#             print("No new files to process. Sleeping for 3 seconds.")
-#             time.sleep(3)
-
-#         choice = input("Do you want to search for a question? (y/n): ")
-#         if choice.lower() != 'y':
-#             break
-        
-#         question = input("Enter your question: ")
-#         search_by_question(collection, model, question, text)  
 

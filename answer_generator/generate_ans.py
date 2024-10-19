@@ -67,12 +67,17 @@ def display_model_answers(models, answers, question):
         answers (dict): Dictionary of model answers.
         question (str): The original question asked.
     """
-    print(f"\nThe Question: {question}")
+    print(f"\n\n\n\nThe Question: {question}\n")
     for model in models:
         model_answers = answers[model]
-        print(f"\nModel: {model}")
+        print(f"Model: {model}")
         for idx, answer in enumerate(model_answers, start=1):
+            if answer.endswith(','):
+                answer = answer[:-1] + '.'
+            elif not answer.endswith('.'):
+                answer += '.'
             print(f"Answer {idx}: {answer}")
+
 
 
 def read_file(file_path):
@@ -94,10 +99,13 @@ def contaxt_to_generate_directory_lisener(question):
     dir_name = r'data\context_to_generate_ans'  # directory to listen for new files
     fin_dir = r"data\finshed\finished_context"
     
+    
     for file in os.listdir(dir_name):
         context = read_file(os.path.join(dir_name, file))
         models = ['timpal0l/mdeberta-v3-base-squad2']
         times, answers = run_models_on_question(models, context, question)
         display_model_answers(models, answers, question)
-        shutil.move(file, fin_dir)
+        
+        
+
         
